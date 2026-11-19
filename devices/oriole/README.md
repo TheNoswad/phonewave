@@ -90,6 +90,12 @@ A BCM4389 on PCIe, on brcmfmac. The address is the bootloader's, handed off
 from its `/chosen/config`. WPA2 and WPA3-Personal work on 2.4 and 5 GHz;
 the firmware leaves SAE to wpa_supplicant.
 
+## USB
+
+dwc3 keeps the USB controller powered until userspace allows runtime PM.
+The tail's `usb-runtime-pm.service` allows it, so the controller suspends
+5 s after the cable is gone.
+
 ## Denial
 
 exynosdrm drives the panel and has no render node; panfrost renders. The

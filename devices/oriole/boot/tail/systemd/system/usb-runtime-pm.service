@@ -1,0 +1,12 @@
+# dwc3 forbids runtime PM until userspace allows it. Allowed, the USB
+# controller suspends 5 s after the cable is gone, powering its PHY down,
+# and the PHY starts again with the cable's orientation when one comes.
+[Unit]
+Description=Let the USB controller suspend without a cable
+DefaultDependencies=no
+Before=sysinit.target
+ConditionPathExists=/sys/devices/platform/soc@0/soc@0:usb@11110000/11110000.usb/power/control
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c 'echo auto > /sys/devices/platform/soc@0/soc@0:usb@11110000/11110000.usb/power/control'
