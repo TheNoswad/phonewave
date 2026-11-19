@@ -333,10 +333,10 @@ last.
 | Boot | works | 2026-11-18, perpetua 54b11399ccc0, user, probe | The shared image on `userdata`; `boot_b` carries the shared early userspace as its ramdisk (no init_boot partition), the modules' tail after it |
 | Display | works | 2026-11-16, oriole branch, user | exynosdrm takes over from the bootloader, 1080x2400 at 60 and 90 Hz |
 | Brightness | works | 2026-11-16, oriole branch, probe | Panel backlight 0-2047 |
-| Wake from screen off | ? | | Blanking works; the power key not tried |
+| Wake from screen off | works | 2026-11-19, perpetua 69b0369d4402, user | Power key; also the volume keys |
 | GPU | works | 2026-11-16, oriole branch, user | Panfrost; Mali-G78 entry in mesa-denial |
 | Touch | works | 2026-11-16, oriole branch, user | STM FTS5 on SPI |
-| Keys | untested | | gpio-keys registers |
+| Keys | works | 2026-11-19, perpetua 69b0369d4402, user | Power and volume, through gpio-keys |
 | Haptics | not started | | cs40l2x |
 | Storage | works | 2026-11-16, oriole branch, probe | UFS |
 | USB device | works | 2026-11-17, oriole branch, probe | ECM networking |
@@ -366,5 +366,5 @@ last.
 | Cooling | works | 2026-11-16, oriole branch, probe | TMU zones for the CPU clusters and the GPU; throttling tried with emulated temperatures |
 | Denial | works | 2026-11-18, perpetua 54b11399ccc0, user | The image's setup, then the home screen; the CPUs at full speed with linux-perpetua#43 |
 | Native apps | partial | 2026-11-16, oriole branch, user | Settings and Welcome open; laggy |
-| Android apps | ? | | |
+| Android apps | broken | 2026-11-19, perpetua 69b0369d4402, user | Droidloom's minigbm has no panfrost backend, so Android's graphics allocator exits and its system server restarts every 5 s (denialwm/droidloom#40) |
 | CPU frequency | works | 2026-11-15, oriole branch, probe | cpufreq-dt, schedutil |
