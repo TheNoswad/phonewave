@@ -153,7 +153,11 @@ modules() {
 		boot=/dev/${b##*/}
 		set -- $(dd if=$boot bs=4 skip=2 count=2 2>/dev/null | od -An -tu4)
 		[ $# = 2 ] || continue
-		mount -t erofs -o ro,fsoffset=$(( 4096 + ($1 + 4095) / 4096 * 4096 + ($2 + 4095) / 4096 * 4096 )) $boot /newroot/usr/lib/modules 2>/dev/null || continue
+		fs=$(( 4096 + ($1 + 4095) / 4096 * 4096 + ($2 + 4095) / 4096 * 4096 ))
+		# Only a filesystem there, with erofs's magic 1 KiB in: mounting a
+		# slot without one, such as stock's, makes erofs complain.
+		[ "$(dd if=$boot bs=4 skip=$(( (fs + 1024) / 4 )) count=1 2>/dev/null | od -An -tx4 | tr -d ' ')" = e0f5e1e2 ] || continue
+		mount -t erofs -o ro,fsoffset=$fs $boot /newroot/usr/lib/modules 2>/dev/null || continue
 		[ -d /newroot/usr/lib/modules/$release ] &&
 			slot=$(sed -n 's/^PARTNAME=boot//p' $b/uevent) && return 0
 		umount /newroot/usr/lib/modules
