@@ -265,10 +265,32 @@ static int mgmt_send(int fd, unsigned int opcode, unsigned int index,
 	return 0;
 }
 
-/* Answers one reply or event; returns -1 when the socket must be given up. */
-static int mgmt_handle(int fd, const uint8_t *packet, size_t length,
-		       const uint8_t bdaddr[6])
+/*
+ * The address for the controllers, least significant byte first as they take
+ * it. Derived when one is first found missing its own, so a device whose
+ * controllers all have one never needs the serial.
+ */
+static int controller_address(uint8_t bdaddr[6])
 {
+	static uint8_t cached[6];
+	static int derived;
+	uint8_t address[6];
+
+	if (!derived) {
+		if (bluetooth_address(address))
+			return -1;
+		for (int i = 0; i < 6; i++)
+			cached[i] = address[5 - i];
+		derived = 1;
+	}
+	memcpy(bdaddr, cached, 6);
+	return 0;
+}
+
+/* Answers one reply or event; returns -1 when the socket must be given up. */
+static int mgmt_handle(int fd, const uint8_t *packet, size_t length)
+{
+	uint8_t bdaddr[6];
 	unsigned int event, index, opcode, status;
 	const uint8_t *data = packet + 6;
 	size_t size;
@@ -305,6 +327,9 @@ static int mgmt_handle(int fd, const uint8_t *packet, size_t length,
 	case MGMT_OP_READ_CONFIG_INFO:
 		if (size < 10 || !(le32(data + 6) & MGMT_OPTION_PUBLIC_ADDRESS))
 			return 0;
+		/* Without the serial this controller stays unconfigured. */
+		if (controller_address(bdaddr))
+			return 0;
 		return mgmt_send(fd, MGMT_OP_SET_PUBLIC_ADDRESS, index, bdaddr, 6);
 	case MGMT_OP_SET_PUBLIC_ADDRESS:
 		fprintf(stderr, "radio-addr: hci%u: public address set\n", index);
@@ -316,15 +341,9 @@ static int mgmt_handle(int fd, const uint8_t *packet, size_t length,
 static int run_bluetooth(void)
 {
 	struct sockaddr_hci addr = { AF_BLUETOOTH_, MGMT_INDEX_NONE, HCI_CHANNEL_CONTROL };
-	uint8_t address[6], bdaddr[6], packet[6 + 65535];
+	uint8_t packet[6 + 65535];
 	ssize_t length;
 	int fd;
-
-	if (bluetooth_address(address))
-		return 1;
-	/* The controller takes the address least significant byte first. */
-	for (int i = 0; i < 6; i++)
-		bdaddr[i] = address[5 - i];
 
 	fd = socket(AF_BLUETOOTH_, SOCK_RAW | SOCK_CLOEXEC, BTPROTO_HCI);
 	if (fd < 0 || bind(fd, (struct sockaddr *)&addr, sizeof(addr))) {
@@ -335,7 +354,7 @@ static int run_bluetooth(void)
 	if (mgmt_send(fd, MGMT_OP_READ_UNCONF_INDEX_LIST, MGMT_INDEX_NONE, NULL, 0))
 		return 1;
 	while ((length = read(fd, packet, sizeof(packet))) >= 0 || errno == EINTR)
-		if (length >= 0 && mgmt_handle(fd, packet, length, bdaddr))
+		if (length >= 0 && mgmt_handle(fd, packet, length))
 			return 1;
 	fprintf(stderr, "radio-addr: management read: %s\n", strerror(errno));
 	return 1;
